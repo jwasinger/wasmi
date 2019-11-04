@@ -16,6 +16,7 @@ use value::{
     TryTruncateInto, WrapInto,
 };
 use {Signature, Trap, TrapKind, ValueType};
+use std::collections::HashMap;
 
 /// Maximum number of bytes on the value stack.
 pub const DEFAULT_VALUE_STACK_LIMIT: usize = 1024 * 1024;
@@ -168,6 +169,7 @@ pub struct Interpreter {
     call_stack: CallStack,
     return_type: Option<ValueType>,
     state: InterpreterState,
+    execution_trace_instructions: HashMap<&'static str, u32>,
 }
 
 impl Interpreter {
@@ -196,6 +198,7 @@ impl Interpreter {
             value_stack,
             call_stack,
             return_type,
+            execution_trace_instructions: Default::default(), 
             state: InterpreterState::Initialized,
         })
     }
@@ -218,6 +221,7 @@ impl Interpreter {
             .return_type
             .map(|vt| self.value_stack.pop().with_type(vt));
 
+        println!("executed instructions {:?}", &self.execution_trace_instructions);
         // Ensure that stack is empty after the execution. This is guaranteed by the validation properties.
         assert!(self.value_stack.len() == 0);
 
@@ -335,6 +339,189 @@ impl Interpreter {
         }
     }
 
+    fn instruction_name(instruction: &isa::Instruction) -> &'static str {
+        match instruction {
+            &isa::Instruction::Unreachable => "Unreachable",
+            &isa::Instruction::GetLocal(_) => "GetLocal",
+            &isa::Instruction::SetLocal(_) => "SetLocal",
+            &isa::Instruction::TeeLocal(_) => "TeeLocal",
+            &isa::Instruction::Br(_) => "Br",
+            &isa::Instruction::BrIfEqz(_) => "BrIfEqz",
+            &isa::Instruction::BrIfNez(_) => "BrIfNez",
+            &isa::Instruction::BrTable(_) => "BrTable",
+            &isa::Instruction::Return(_) => "Return",
+            &isa::Instruction::Call(_) => "Call",
+            &isa::Instruction::CallIndirect(_) => "CallIndirect",
+            &isa::Instruction::Drop => "Drop",
+            &isa::Instruction::Select => "Select",
+            &isa::Instruction::GetGlobal(_) => "GetGlobal",
+            &isa::Instruction::SetGlobal(_) => "SetGlobal",
+            &isa::Instruction::I32Load(_) => "I32Load",
+            &isa::Instruction::I64Load(_) => "I64Load",
+            &isa::Instruction::F32Load(_) => "F32Load",
+            &isa::Instruction::F64Load(_) => "F64Load",
+            &isa::Instruction::I32Load8S(_) => "I32Load8S",
+            &isa::Instruction::I32Load8U(_) => "I32Load8U",
+            &isa::Instruction::I32Load16S(_) => "I32Load16S",
+            &isa::Instruction::I32Load16U(_) => "I32Load16U",
+            &isa::Instruction::I64Load8S(_) => "I64Load8S",
+            &isa::Instruction::I64Load8U(_) => "I64Load8U",
+            &isa::Instruction::I64Load16S(_) => "I64Load16S",
+            &isa::Instruction::I64Load16U(_) => "I64Load16U",
+            &isa::Instruction::I64Load32S(_) => "I64Load32S",
+            &isa::Instruction::I64Load32U(_) => "I64Load32U",
+            &isa::Instruction::I32Store(_) => "I32Store",
+            &isa::Instruction::I64Store(_) => "I64Store",
+            &isa::Instruction::F32Store(_) => "F32Store",
+            &isa::Instruction::F64Store(_) => "F64Store",
+            &isa::Instruction::I32Store8(_) => "I32Store8",
+            &isa::Instruction::I32Store16(_) => "I32Store16",
+            &isa::Instruction::I64Store8(_) => "I64Store8",
+            &isa::Instruction::I64Store16(_) => "I64Store16",
+            &isa::Instruction::I64Store32(_) => "I64Store32",
+&isa::Instruction::CurrentMemory => "CurrentMemory",
+&isa::Instruction::GrowMemory => "GrowMemory",
+&isa::Instruction::I32Const(_) => "I32Const",
+&isa::Instruction::I64Const(_) => "I64Const",
+&isa::Instruction::F32Const(_) => "F32Const",
+&isa::Instruction::F64Const(_) => "F64Const",
+&isa::Instruction::I32Eqz => "I32Eqz",
+&isa::Instruction::I32Eq => "I32Eq",
+&isa::Instruction::I32Ne => "I32Ne",
+&isa::Instruction::I32LtS => "I32LtS",
+&isa::Instruction::I32LtU => "I32LtU",
+&isa::Instruction::I32GtS => "I32GtS",
+&isa::Instruction::I32GtU => "I32GtU",
+&isa::Instruction::I32LeS => "I32LeS",
+&isa::Instruction::I32LeU => "I32LeU",
+&isa::Instruction::I32GeS => "I32GeS",
+&isa::Instruction::I32GeU => "I32GeU",
+&isa::Instruction::I64Eqz => "I64Eqz",
+&isa::Instruction::I64Eq => "I64Eq",
+&isa::Instruction::I64Ne => "I64Ne",
+&isa::Instruction::I64LtS => "I64LtS",
+&isa::Instruction::I64LtU => "I64LtU",
+&isa::Instruction::I64GtS => "I64GtS",
+&isa::Instruction::I64GtU => "I64GtU",
+&isa::Instruction::I64LeS => "I64LeS",
+&isa::Instruction::I64LeU => "I64LeU",
+&isa::Instruction::I64GeS => "I64GeS",
+&isa::Instruction::I64GeU => "I64GeU",
+/*
+&isa::Instruction::F32Eq => ,
+&isa::Instruction::F32Ne,
+&isa::Instruction::F32Lt,
+&isa::Instruction::F32Gt,
+&isa::Instruction::F32Le,
+&isa::Instruction::F32Ge,
+&isa::Instruction::F64Eq,
+&isa::Instruction::F64Ne,
+&isa::Instruction::F64Lt,
+&isa::Instruction::F64Gt,
+&isa::Instruction::F64Le,
+&isa::Instruction::F64Ge,
+*/
+&isa::Instruction::I32Clz => "I32Clz",
+&isa::Instruction::I32Ctz => "I32Ctz",
+&isa::Instruction::I32Popcnt => "I32Popcnt",
+&isa::Instruction::I32Add => "I32Add",
+&isa::Instruction::I32Sub => "I32Sub",
+&isa::Instruction::I32Mul => "I32Mul",
+&isa::Instruction::I32DivS => "I32DivS",
+&isa::Instruction::I32DivU => "I32DivU",
+&isa::Instruction::I32RemS => "I32RemS",
+&isa::Instruction::I32RemU => "I32RemU",
+&isa::Instruction::I32And => "I32And",
+&isa::Instruction::I32Or => "I32Or",
+&isa::Instruction::I32Xor => "I32Xor",
+&isa::Instruction::I32Shl => "I32Shl",
+&isa::Instruction::I32ShrS => "I32ShrS",
+&isa::Instruction::I32ShrU => "I32ShrU",
+&isa::Instruction::I32Rotl => "I32Rotl",
+&isa::Instruction::I32Rotr => "I32Rotr",
+&isa::Instruction::I64Clz => "I64Clz",
+&isa::Instruction::I64Ctz => "I64Ctz",
+&isa::Instruction::I64Popcnt => "I64Popcnt",
+&isa::Instruction::I64Add => "I64Add",
+&isa::Instruction::I64Sub => "I64Sub",
+&isa::Instruction::I64Mul => "I64Mul",
+&isa::Instruction::I64DivS => "I64DivS",
+&isa::Instruction::I64DivU => "I64DivU",
+&isa::Instruction::I64RemS => "I64RemS",
+&isa::Instruction::I64RemU => "I64RemU",
+&isa::Instruction::I64And => "I64And",
+&isa::Instruction::I64Or => "I64Or",
+&isa::Instruction::I64Xor => "I64Xor",
+&isa::Instruction::I64Shl => "I64Shl",
+&isa::Instruction::I64ShrS => "I64ShrS",
+&isa::Instruction::I64ShrU => "I64ShrU",
+&isa::Instruction::I64Rotl => "I64Rotl",
+&isa::Instruction::I64Rotr => "I64Rotr",
+/*
+&isa::Instruction::F32Abs ,
+&isa::Instruction::F32Neg,
+&isa::Instruction::F32Ceil,
+&isa::Instruction::F32Floor,
+&isa::Instruction::F32Trunc,
+&isa::Instruction::F32Nearest,
+&isa::Instruction::F32Sqrt,
+&isa::Instruction::F32Add,
+&isa::Instruction::F32Sub,
+&isa::Instruction::F32Mul,
+&isa::Instruction::F32Div,
+&isa::Instruction::F32Min,
+&isa::Instruction::F32Max,
+&isa::Instruction::F32Copysign,
+&isa::Instruction::F64Abs,
+&isa::Instruction::F64Neg,
+&isa::Instruction::F64Ceil,
+&isa::Instruction::F64Floor,
+&isa::Instruction::F64Trunc,
+&isa::Instruction::F64Nearest,
+&isa::Instruction::F64Sqrt,
+&isa::Instruction::F64Add,
+&isa::Instruction::F64Sub,
+&isa::Instruction::F64Mul,
+&isa::Instruction::F64Div,
+&isa::Instruction::F64Min,
+&isa::Instruction::F64Max,
+&isa::Instruction::F64Copysign,
+*/
+    I32WrapI64 => "I32WrapI64",
+    /*
+    I32TruncSF32,
+    I32TruncUF32,
+    I32TruncSF64,
+    I32TruncUF64,
+    */
+    I64ExtendSI32 => "I64ExtendSI32",
+    I64ExtendUI32 => "I64ExtendUI32",
+    /*
+    I64TruncSF32,
+    I64TruncUF32,
+    I64TruncSF64,
+    I64TruncUF64,
+    F32ConvertSI32,
+    F32ConvertUI32,
+    F32ConvertSI64,
+    F32ConvertUI64,
+    F32DemoteF64,
+    F64ConvertSI32,
+    F64ConvertUI32,
+    F64ConvertSI64,
+    F64ConvertUI64,
+    F64PromoteF32,
+
+    I32ReinterpretF32,
+    I64ReinterpretF64,
+    F32ReinterpretI32,
+    F64ReinterpretI64,
+    */
+            _ => "not implemented",//panic!("not implemented"),
+        }
+
+    }
+
     fn do_run_function(
         &mut self,
         function_context: &mut FunctionContext,
@@ -348,6 +535,12 @@ impl Interpreter {
                  since validation ensures that we either have an explicit \
                  return or an implicit block `end`.",
             );
+
+            if let Some(mut count) = self.execution_trace_instructions.get_mut(Self::instruction_name(&instruction)) {
+               *count += 1; 
+            } else {
+                self.execution_trace_instructions.insert(Self::instruction_name(&instruction), 0);
+            };
 
             match self.run_instruction(function_context, &instruction)? {
                 InstructionOutcome::RunNextInstruction => {}
@@ -368,6 +561,8 @@ impl Interpreter {
 
         Ok(RunResult::Return)
     }
+
+
 
     #[inline(always)]
     fn run_instruction(
