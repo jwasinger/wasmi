@@ -47,6 +47,8 @@ core = [
 # workloads.
 vec_memory = []
 
+instruction_counting = []
+
 [workspace]
 members = ["validation"]
 exclude = ["benches"]

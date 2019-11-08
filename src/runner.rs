@@ -222,6 +222,7 @@ impl Interpreter {
             .map(|vt| self.value_stack.pop().with_type(vt));
 
         //println!("executed instructions {:?}", &self.execution_trace_instructions);
+        #[cfg(feature = "instruction_counting")]
         self.print_instruction_trace();
         // Ensure that stack is empty after the execution. This is guaranteed by the validation properties.
         assert!(self.value_stack.len() == 0);
@@ -589,11 +590,14 @@ impl Interpreter {
                  return or an implicit block `end`.",
             );
 
-            if let Some(mut count) = self.execution_trace_instructions.get_mut(Self::instruction_name(&instruction)) {
-               *count += 1; 
-            } else {
-                self.execution_trace_instructions.insert(Self::instruction_name(&instruction), 0);
-            };
+            #[cfg(feature = "instruction_counting")]
+            {
+                if let Some(mut count) = self.execution_trace_instructions.get_mut(Self::instruction_name(&instruction)) {
+                   *count += 1;
+                } else {
+                    self.execution_trace_instructions.insert(Self::instruction_name(&instruction), 0);
+                };
+            }
 
             match self.run_instruction(function_context, &instruction)? {
                 InstructionOutcome::RunNextInstruction => {}
