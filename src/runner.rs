@@ -565,6 +565,7 @@ impl Interpreter {
     fn print_instruction_trace(&self) {
         let all_opcodes = Self::all_instructions();
         
+        print!("instruction counts: ");
         for op in all_opcodes.iter() {
             if let Some(count) = self.execution_trace_instructions.get(op) {
                 print!("{}, ", count);
